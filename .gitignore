@@ -1,0 +1,31 @@
+# Kubernetes
+kubeconfig
+*.kubeconfig
+.kube/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Helm
+charts/*/charts/
+charts/*/requirements.lock
