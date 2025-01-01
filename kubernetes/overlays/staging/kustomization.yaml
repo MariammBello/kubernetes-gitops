@@ -7,5 +7,5 @@ resources:
 namePrefix: staging-
 
 replicas:
-- name: nginx-deployment
+- name: cloud_resume-deployment
   count: 3  # Staging mirrors production replica count

@@ -219,19 +219,27 @@ kubernetes/
 
 ### 3. Creating ArgoCD Applications
 
-Create an Application manifest for ArgoCD:
+There are two ways to create ArgoCD applications: through YAML manifests or using the ArgoCD CLI/UI.
 
+#### Method 1: Using YAML Manifest
+
+1. Create a directory for your ArgoCD applications:
+```bash
+mkdir -p kubernetes/applications
+```
+
+2. Create the application manifest (`kubernetes/applications/nginx-app.yaml`):
 ```yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: my-app
+  name: nginx-app
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/yourusername/your-repo.git
-    targetRevision: HEAD
+    repoURL: git@github.com:MariammBello/kubernetes-gitops.git  # Your repository URL
+    targetRevision: main
     path: kubernetes/base
   destination:
     server: https://kubernetes.default.svc
@@ -242,10 +250,75 @@ spec:
       selfHeal: true
 ```
 
-Save this as `applications/app.yaml` and apply:
+Key fields explained:
+- `metadata.name`: Name of your application in ArgoCD
+- `metadata.namespace`: Must be `argocd` where ArgoCD is installed
+- `spec.source.repoURL`: Your Git repository URL (HTTPS or SSH)
+- `spec.source.path`: Path to your Kubernetes manifests in the repository
+- `spec.destination.namespace`: Namespace where your application will be deployed
+- `spec.syncPolicy.automated`: Enables automatic sync from Git to cluster
+
+3. Apply the application:
 ```bash
-kubectl apply -f applications/app.yaml
+kubectl apply -f kubernetes/applications/nginx-app.yaml
 ```
+
+#### Method 2: Using ArgoCD CLI
+
+If you prefer using the CLI:
+
+1. Login to ArgoCD CLI:
+```bash
+argocd login localhost:8080
+```
+
+2. Create the application:
+```bash
+argocd app create nginx-app \
+  --repo git@github.com:MariammBello/kubernetes-gitops.git \
+  --path kubernetes/base \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default \
+  --sync-policy automated
+```
+
+#### Verifying the Application
+
+After creating the application, verify its status:
+
+```bash
+# Using kubectl
+kubectl get applications -n argocd
+kubectl get pods -n default  # To see deployed pods
+
+# Using ArgoCD CLI
+argocd app get nginx-app
+argocd app sync nginx-app  # Manual sync if needed
+```
+
+The application status should show:
+- `Healthy`: Application is running correctly
+- `Synced`: Git state matches cluster state
+
+#### Troubleshooting Application Creation
+
+If the application isn't syncing:
+
+1. Check application status:
+```bash
+kubectl describe application nginx-app -n argocd
+```
+
+2. View ArgoCD controller logs:
+```bash
+kubectl logs -n argocd deployment/argocd-application-controller
+```
+
+3. Common issues and solutions:
+   - Repository not accessible: Check your Git URL and credentials
+   - Path not found: Verify the path to your Kubernetes manifests
+   - Invalid manifests: Ensure your YAML files are valid
+   - Network issues: Check if ArgoCD can reach your Git repository
 
 ### 4. Setting Up Monitoring with ArgoCD
 

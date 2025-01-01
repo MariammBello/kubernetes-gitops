@@ -6,8 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/yourusername/windsurf-project.git  # Replace with your repo URL
-    targetRevision: HEAD
+    repoURL: git@github.com:MariammBello/kubernetes-gitops.git
+    targetRevision: main
     path: kubernetes/base
   destination:
     server: https://kubernetes.default.svc

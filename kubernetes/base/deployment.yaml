@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-deployment
+  name: cloud_resume-deployment
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: nginx
+      app: cloud_resume
   template:
     metadata:
       labels:
-        app: nginx
+        app: cloud_resume
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "80"
     spec:
       containers:
-      - name: nginx
-        image: nginx:latest
+      - name: cloud_resume
+        image: ghcr.io/mariammbello/resume-frontend:latest
         ports:
         - containerPort: 80
         resources:

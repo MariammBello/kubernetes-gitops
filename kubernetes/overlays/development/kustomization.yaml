@@ -7,5 +7,5 @@ resources:
 namePrefix: dev-
 
 replicas:
-- name: nginx-deployment
+- name: cloud_resume-deployment
   count: 2  # Development uses fewer replicas
