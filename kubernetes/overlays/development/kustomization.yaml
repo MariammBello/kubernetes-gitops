@@ -7,5 +7,5 @@ resources:
 namePrefix: dev-
 
 replicas:
-- name: cloud_resume-deployment
+- name: cloud-resume-deployment
   count: 2  # Development uses fewer replicas

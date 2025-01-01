@@ -7,5 +7,5 @@ resources:
 namePrefix: staging-
 
 replicas:
-- name: cloud_resume-deployment
+- name: cloud-resume-deployment
   count: 3  # Staging mirrors production replica count
