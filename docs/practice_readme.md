@@ -195,7 +195,8 @@ Login with:
 3. You might see a certificate warning in your browser - this is expected for the default self-signed certificate
 4. After first login, it's recommended to change the admin password
 
-Note: Keep the port-forwarding terminal window open while you need access to the UI. If you close it, you'll need to run the port-forward command again.
+Note: 
+- Keep the port-forwarding terminal window open while you need access to the UI. If you close it, you'll need to run the port-forward command again.
 
 ### 2. Organizing Manifests for GitOps
 
@@ -320,7 +321,95 @@ kubectl logs -n argocd deployment/argocd-application-controller
    - Invalid manifests: Ensure your YAML files are valid
    - Network issues: Check if ArgoCD can reach your Git repository
 
-### 4. Setting Up Monitoring with ArgoCD
+### 4. Setting up NGINX Ingress Controller
+
+To handle external traffic to your cluster, you'll need to set up an ingress controller. We'll use the NGINX ingress controller installed via Helm through ArgoCD.
+
+1. Create the ingress controller application manifest (`kubernetes/applications/nginx-ingress.yaml`):
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-ingress
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    targetRevision: 4.8.3
+    chart: ingress-nginx
+    helm:
+      values: |
+        controller:
+          service:
+            type: LoadBalancer
+          metrics:
+            enabled: true
+          podAnnotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "10254"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-nginx
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+```
+
+2. Apply the ingress controller application:
+```bash
+kubectl apply -f kubernetes/applications/nginx-ingress.yaml
+```
+
+3. Verify the installation:
+```bash
+# Check if the application is synced
+kubectl get applications -n argocd nginx-ingress
+
+# Check if the ingress controller pods are running
+kubectl get pods -n ingress-nginx
+
+# Get the ingress controller service
+kubectl get svc -n ingress-nginx
+```
+
+4. Once the ingress controller is running, you can create an Ingress resource for your cloud resume:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloud-resume-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cloud-resume-service
+            port:
+              number: 80
+```
+
+Key components explained:
+- The application uses the official NGINX ingress controller Helm chart
+- It's configured with LoadBalancer service type for external access
+- Metrics are enabled for Prometheus monitoring
+- The controller will be installed in the `ingress-nginx` namespace
+- Automatic sync and namespace creation are enabled
+
+After the ingress controller is running, you can access your application through the LoadBalancer IP address or hostname.
+
+### 5. Setting Up Monitoring with ArgoCD
 
 Create an Application for Prometheus monitoring:
 
@@ -345,7 +434,7 @@ spec:
       selfHeal: true
 ```
 
-### 5. Best Practices
+### 6. Best Practices
 
 1. **Repository Structure**
    - Keep base configurations separate from environment-specific ones
@@ -367,7 +456,7 @@ spec:
    - Set up monitoring for ArgoCD itself
    - Use the ArgoCD metrics for Prometheus
 
-### 6. Troubleshooting
+### 7. Troubleshooting
 
 Common issues and solutions:
 
@@ -386,7 +475,7 @@ Common issues and solutions:
    - Check for naming conflicts
    - Verify resource quotas
 
-### 7. Validation
+### 8. Validation
 
 Verify your GitOps setup:
 
@@ -400,3 +489,19 @@ argocd app get my-app
 # View application logs
 kubectl logs -n argocd deployment/argocd-application-controller
 ```
+
+### Accessing the Cloud Resume Service
+
+After deploying your cloud resume, you can access it locally using port-forwarding:
+
+```bash
+# Port forward the cloud-resume service to localhost
+kubectl port-forward svc/cloud-resume-service 8081:80  # Using 8081 to avoid conflicts with ArgoCD
+
+# Now you can access your cloud resume at:
+# http://localhost:8081
+```
+
+Note: 
+- Keep the port-forwarding terminal window open while you need access to the service. If you close it, you'll need to run the port-forward command again.
+- If you get a port conflict error (e.g., "unable to listen on port"), try a different local port number. Common alternatives are 8081, 8082, or 3000.
