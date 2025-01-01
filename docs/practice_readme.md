@@ -409,6 +409,88 @@ Key components explained:
 
 After the ingress controller is running, you can access your application through the LoadBalancer IP address or hostname.
 
+### 4.1 Setting up ArgoCD Ingress
+
+To access ArgoCD without port-forwarding, we'll create an ingress resource. Note that ArgoCD server uses HTTPS internally (port 443), so we need to configure the ingress accordingly:
+
+1. Create the ArgoCD ingress resource (`kubernetes/base/argocd-ingress.yaml`):
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: argocd.3figirl.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: argocd-server
+            port:
+              number: 443
+```
+
+2. Important configuration notes:
+   - `backend-protocol: "HTTPS"`: Required because ArgoCD server uses HTTPS internally
+   - `ssl-redirect: "false"`: Allows HTTP access from browsers
+   - Port 443: This is the port ArgoCD server listens on internally
+   - No SSL certificate is needed for this setup
+
+3. Verify the ArgoCD ingress setup:
+```bash
+# Check if ingress is created
+kubectl get ingress -n argocd
+
+# Verify the configuration
+kubectl describe ingress -n argocd argocd-server-ingress
+
+# Get the ingress controller IP (if you haven't already)
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+
+# Test access (once DNS is configured)
+curl -v http://argocd.3figirl.com
+```
+
+4. DNS Configuration:
+   - Get your ingress controller's external IP:
+     ```bash
+     kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+     ```
+   - Add a DNS record for `argocd.3figirl.com` pointing to this IP
+
+5. Troubleshooting Tips:
+   - If you can't access ArgoCD:
+     ```bash
+     # Check ArgoCD server status
+     kubectl get pods -n argocd
+     
+     # View ArgoCD server logs
+     kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server
+     
+     # Check ingress controller logs
+     kubectl logs -n ingress-nginx deploy/ingress-nginx-controller
+     ```
+   - Common issues and solutions:
+     - 502 Bad Gateway: Check if ArgoCD server is running
+     - Connection refused: Verify ingress controller is running
+     - SSL/TLS errors: Check backend protocol settings
+     - Authentication fails: Make sure you're using the correct credentials
+
+6. Future Security Enhancements:
+   - Install cert-manager for proper SSL/TLS certificates
+   - Enable HTTPS with valid certificates
+   - Configure additional authentication methods
+   - Set up network policies
+   - Enable monitoring for ingress metrics
+
 ### 5. Setting Up Monitoring with ArgoCD
 
 Create an Application for Prometheus monitoring:
