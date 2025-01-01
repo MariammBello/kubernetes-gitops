@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
-  - nginx-ingress.yaml
+  - ingress.yaml
+  - nginx-ingress-controller.yaml
