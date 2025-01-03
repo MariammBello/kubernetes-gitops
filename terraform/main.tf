@@ -3,16 +3,16 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.0.0"
 
+#Input module requirements
+
   name = "${var.cluster_name}-vpc"
   cidr = var.vpc_cidr
-
   azs             = ["${var.aws_region}a", "${var.aws_region}b"]
   private_subnets = [cidrsubnet(var.vpc_cidr, 8, 1), cidrsubnet(var.vpc_cidr, 8, 2)]
   public_subnets  = [cidrsubnet(var.vpc_cidr, 8, 3), cidrsubnet(var.vpc_cidr, 8, 4)]
-
   enable_nat_gateway   = true
-  single_nat_gateway   = true
-  enable_dns_hostnames = true
+  single_nat_gateway   = true #this is default true in registry so to clean code it may not be a necessary add on
+  enable_dns_hostnames = true #this is default true in registry so to clean code it may not be a necessary add on
 
   tags = {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
@@ -39,7 +39,7 @@ module "eks" {
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
-
+  
   cluster_endpoint_public_access = true
 
   eks_managed_node_groups = {
